@@ -8,12 +8,12 @@ This walkthrough uses Kubernetes, Istio, and Envoy-style traffic management to s
 
 Confirm the following tools are available:
 
-- Kind  
-- kubectl  
-- Istio (`istioctl`)  
-- `watch`  
-- `curl`  
-- `hey`  
+- Kind
+- kubectl
+- Istio (`istioctl`)
+- `watch`
+- `curl`
+- `hey`
 
 Run the environment check:
 
@@ -42,7 +42,7 @@ brew install podman
 
 ## 1. Run the sample image locally
 
-Pull up the same image we use in the cluster (`hashicorp/http-echo`) with Docker or Podman so you can see the response before we involve Kubernetes.
+Run the same image we use in the cluster (`hashicorp/http-echo`) with Docker or Podman so you can see the response before Kubernetes is involved.
 
 **Docker**
 
@@ -178,7 +178,7 @@ After the pod is ready, metrics should populate:
 hey -z 1m -c 400 http://localhost:4040
 ```
 
-Plain Services still do **not** do HTTP-level, per-request balancing. **`hey -c 400`** opens many concurrent requests, but you can still see **most CPU on one pod** in the metrics screenshot: paths such as **`kubectl port-forward`** plus L4 kube-proxy rules do not spread load the way an L7 proxy (or Istio) does, and distribution is not “one request, one different pod.”
+Plain Services still do **not** perform HTTP-level, per-request balancing. **`hey -c 400`** issues many concurrent requests, but you can still see **most CPU on one pod** in the metrics screenshot: **`kubectl port-forward`** and L4 kube-proxy rules do not spread load the way an L7 proxy (or Istio) does, and distribution is not “one request, one different pod.”
 
 <img src="./assets/no-balancing-metrics.png" width="800"/>
 
@@ -218,7 +218,17 @@ Restart the workloads so new pods pick up the sidecar:
 kubectl rollout restart deployment -n api
 ```
 
+Each pod now runs an extra **istio-proxy** (Envoy) sidecar alongside your app container. In the next steps, that proxy will handle traffic into and out of the pod. 
+
+<img src="./assets/rollout.png" width="400"/>
+
+After the rollout, the mesh layout looks roughly like this:
+
+<img src="./assets/istio.png" width="1000"/>
+
 ## 9. Apply Istio networking resources
+
+Sidecar injection alone is not enough: you still need Istio networking resources so the mesh can route and balance traffic the way Istio is meant to work.
 
 Apply three resources in the **`api`** namespace:
 
@@ -231,6 +241,10 @@ kubectl apply -f manifests/istio/destinationrules.yaml
 kubectl apply -f manifests/istio/gateway.yaml
 kubectl apply -f manifests/istio/virtualservice.yaml
 ```
+
+The ingress path through Istio looks like this:
+
+<img src="./assets/istio-gateway-service.png" width="1000"/>
 
 Inspect the ingress gateway Service (it lives in **`istio-system`**, not in `api`):
 
@@ -311,6 +325,10 @@ Compare pod CPU or request metrics with the earlier “plain Service” run:
 
 <img src="./assets/load-distro.png" width="800"/>
 
+With this setup, traffic is balanced at the HTTP layer:
+
+<img src="./assets/load-balancing.png" width="1000"/>
+
 ## Tear down
 
 **Istio networking resources**
@@ -327,12 +345,13 @@ kubectl delete -f manifests/istio/virtualservice.yaml
 kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
-**API workloads and Service**
+**API workloads, Service and Namespace**
 
 ```sh
 kubectl delete -f manifests/api/deployment-v1.yaml
 kubectl delete -f manifests/api/deployment-v2.yaml
 kubectl delete -f manifests/api/service.yaml
+kubectl delete -f manifests/base/namespaces.yaml
 ```
 
 **Kind cluster**
