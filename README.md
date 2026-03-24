@@ -227,6 +227,14 @@ Each pod now runs an extra **istio-proxy** (Envoy) sidecar alongside your app co
 
 <img src="./assets/rollout.png" width="400"/>
 
+Now you can check the containers inside one of the pods you have in ```api``` namespace:
+
+```sh
+kubectl get pod <Pod name> -n api -o jsonpath='{range .spec.containers[*]}{.name}{"\n"}{end}'
+```
+
+* ```Pod name``` is something like: ```myapi-v1-6c9f58769-76g2g```
+
 <!-- After the rollout, the mesh layout looks roughly like this:
 
 <img src="./assets/istio.png" width="1000"/> FIX THIS BECAUSE THE ISTIOD IS ALREADY INSTALL-->
