@@ -227,9 +227,9 @@ Each pod now runs an extra **istio-proxy** (Envoy) sidecar alongside your app co
 
 <img src="./assets/rollout.png" width="400"/>
 
-After the rollout, the mesh layout looks roughly like this:
+<!-- After the rollout, the mesh layout looks roughly like this:
 
-<img src="./assets/istio.png" width="1000"/>
+<img src="./assets/istio.png" width="1000"/> FIX THIS BECAUSE THE ISTIOD IS ALREADY INSTALL-->
 
 ## 9. Apply Istio networking resources
 
