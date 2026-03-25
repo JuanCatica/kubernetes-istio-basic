@@ -111,7 +111,7 @@ check_program "kubectl" kubectl "See https://kubernetes.io/docs/tasks/tools/" \
 
 # --- Istio ---
 check_program "Istio" istioctl "See https://istio.io/latest/docs/setup/getting-started/" \
-  "istioctl version 2>/dev/null | head -n 1 | tr -d '\r'"
+  "istioctl version --remote=false 2>/dev/null | head -n 1 | tr -d '\r'"
 
 # --- watch ---
 check_program "Watch" watch "See https://linux.die.net/man/1/watch"
