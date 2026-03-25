@@ -124,6 +124,8 @@ curl http://localhost:4040
 
 <img src="./assets/deployment-service.png" width="1000"/>
 
+**Note:** Kube-proxy is an essential network agent component that runs on every node in a Kubernetes cluster. Its main function is to manage network rules to enable communication between pods and services, abstracting the complexity of the underlying network. It acts as a local load balancer, directing traffic to the correct pods.
+
 ## 5. Observe “no per-request” balancing
 
 Run several requests:
