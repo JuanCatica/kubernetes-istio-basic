@@ -108,6 +108,16 @@ kubectl apply -f manifests/api/deployment-v2.yaml
 kubectl apply -f manifests/api/service.yaml
 ```
 
+<!-- If you encounter issues where the `watch kubectl get all,nodes ...` command shows an `ImagePullBackOff` error for the API pods, it likely means your local cluster cannot pull the `hashicorp/http-echo` image. To resolve this, run the following commands:
+
+```sh
+docker pull hashicorp/http-echo
+kind load docker-image hashicorp/http-echo --name istio-basic
+```
+
+This will ensure the required image is available locally and loaded into your Kind cluster. -->
+
+
 **Port-forward** the Service so you can hit it from your laptop. The form is `LOCAL_PORT:SERVICE_PORT`: the **right-hand** port must be a `spec.ports[].port` on the Service (here **80** maps to container port **5678** via `targetPort`).
 
 *Run the following command in a new terminal session and do not close it:*
