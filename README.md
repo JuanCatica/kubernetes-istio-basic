@@ -214,7 +214,17 @@ Install the Istio control plane with **`istioctl`** (uses your current `kubectl`
 istioctl install -y
 ```
 
-Enable automatic sidecar injection for the **`api`** namespace. Either label the namespace:
+> **:warning: Important:**  
+> If you encounter issues after running the previous Istio installation command—such as pods failing to start or remaining in a pending state—it may be because the Istio control plane is requesting more memory than your node can provide. You can resolve this by **lowering the resource requests** for the Istio control plane. Patch the `istiod` Deployment to reduce its memory and CPU requirements:
+> 
+> ```sh
+> kubectl patch deployment istiod -n istio-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"discovery","resources":{"requests":{"memory":"512Mi","cpu":"100m"}}}]}}}}'
+> ```
+> 
+> *This command sets the `istiod` container's resource requests to 512Mi of memory and 100m of CPU, which can help it fit on smaller clusters such as those running locally with Kind or Minikube.*
+
+
+Then, enable automatic sidecar injection for the **`api`** namespace. Either label the namespace:
 
 ```sh
 kubectl label namespace api istio-injection=enabled
