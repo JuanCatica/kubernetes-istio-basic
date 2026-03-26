@@ -18,6 +18,7 @@ spec:
       containers:
       - name: app
         image: hashicorp/http-echo
+        imagePullPolicy: IfNotPresent
         args:
         - "-text=myapi v1"
         ports:
