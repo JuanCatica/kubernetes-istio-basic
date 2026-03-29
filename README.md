@@ -359,6 +359,10 @@ flowchart TB
   P2 ---|"label: version=v2"| DR
 ```
 
+**Why [gateway.yaml] looks “off” the main traffic arrow**
+
+The **Gateway** CRD is **not** a proxy hop after `istio-ingressgateway`. Packets only traverse **Envoy** (ingress gateway pods, then sidecars). The **Gateway** resource **configures the ingress listener** (port, protocol, hosts, which workloads listen) via its **selector** (`istio: ingressgateway`). The **VirtualService** then **binds** HTTP routes to that listener through `gateways: api-gateway`. Istiod **merges** Gateway + VirtualService + DestinationRule into config on **the same** `istio-ingressgateway` Envoy—so the dashed **`GW -.-> IG`** line is a **configuration** edge (“who listens, on what”), and **`VS --> GW`** means **routes are attached to that Gateway’s listeners**, not “traffic flows VS → Gateway pod.”
+
 **Why the diagram links DestinationRule (and VirtualService) to the Kubernetes Service**
 
 It is easy to assume that Istio replaces the `Service`: mesh traffic is handled by **Envoy** (sidecars and the ingress gateway), and **subsets** in the DestinationRule pick versions by **labels**, so it can look as if pods talk “only through the proxy” and not through the `Service` object from [<service.yaml>].
