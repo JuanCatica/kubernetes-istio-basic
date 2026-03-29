@@ -374,7 +374,9 @@ So the arrows toward **K8s Service: myapi** in the diagram mean **“policy and 
 
 ## 10. Reach the API through the ingress gateway
 
-Traffic now goes **ingress gateway → VirtualService → subsets** instead of only the Kubernetes Service. Forward port **80** on `istio-ingressgateway` to your laptop.
+Traffic now enters the mesh at **`istio-ingressgateway`**, where Envoy applies your **Gateway**, **VirtualService**, and **DestinationRule** subsets—so requests are steered at **HTTP layer 7** (weights, subsets), not only by a **plain `ClusterIP` Service** as when you port-forwarded straight to `myapi`. The **`myapi` Service** is still required: it remains **`host: myapi`** and the **endpoint source** for those rules; Istio adds **L7** routing on top of it.
+
+**Port-forward** port **80** on Service **`istio-ingressgateway`** to your laptop (the next example uses **8080:80**).
 
 *Run the following command in a new terminal session and do not close it:*
 
