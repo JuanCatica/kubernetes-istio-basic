@@ -4,6 +4,18 @@
 set -euo pipefail
 
 issues=0
+missing_brew=()
+
+# Colors when stdout is a TTY (no escape noise in logs / pipes).
+if [[ -t 1 ]]; then
+  clr_ok=$'\033[32m'         # green — summary success
+  brew_hint_clr=$'\033[1;34m' # bold blue — Homebrew intro
+  brew_cmd_clr=$'\033[1;32m'  # bold green — brew install command
+  brew_cmt_clr=$'\033[90m'   # gray — Docker Desktop comment
+  clr_rst=$'\033[0m'
+else
+  clr_ok= brew_hint_clr= brew_cmd_clr= brew_cmt_clr= clr_rst=
+fi
 
 section_line() {
   printf '%s\n' "────────────────────────────────────────────────────────────"
@@ -46,6 +58,21 @@ print_fail() {
   issues=$((issues + 1))
 }
 
+# Maps CLI name to the argument Homebrew expects on `brew install …`.
+brew_pkg_for_binary() {
+  case "$1" in
+    curl) printf '%s\n' curl ;;
+    docker) printf '%s\n' docker ;;
+    hey) printf '%s\n' hey ;;
+    istioctl) printf '%s\n' istioctl ;;
+    k9s) printf '%s\n' derailed/k9s/k9s ;;
+    kind) printf '%s\n' kind ;;
+    kubectl) printf '%s\n' kubectl ;;
+    watch) printf '%s\n' watch ;;
+    *) return 1 ;;
+  esac
+}
+
 # check_program TITLE BINARY INSTALL_HINT [VERSION_SHELL]
 # VERSION_SHELL: optional shell snippet run via bash -c to produce version text (first line used).
 # If omitted, runs BINARY --version.
@@ -57,6 +84,9 @@ check_program() {
 
   if ! command -v "$binary" &>/dev/null; then
     print_fail "$title" "${binary} not found in PATH. ${install_hint}"
+    local pkg
+    pkg="$(brew_pkg_for_binary "$binary" 2>/dev/null || true)"
+    [[ -n "$pkg" ]] && missing_brew+=("$pkg")
     return
   fi
 
@@ -71,32 +101,9 @@ check_program() {
 
 header
 
-# --- Docker or Podman (at least one) ---
-detail_parts=()
-if command -v docker &>/dev/null; then
-  dv="$(docker --version 2>/dev/null | tr -d '\r' || true)"
-  if [[ -n "$dv" ]]; then
-    detail_parts+=("$dv")
-  else
-    detail_parts+=("Docker (installed)")
-  fi
-fi
-if command -v podman &>/dev/null; then
-  pv="$(podman --version 2>/dev/null | tr -d '\r' || true)"
-  if [[ -n "$pv" ]]; then
-    detail_parts+=("$pv")
-  else
-    detail_parts+=("Podman (installed)")
-  fi
-fi
-
-if ((${#detail_parts[@]} > 0)); then
-  joined="$(printf '%s; ' "${detail_parts[@]}")"
-  joined="${joined%; }"
-  print_ok "Docker or Podman" "${joined}"
-else
-  print_fail "Docker or Podman" "Neither docker nor podman found in PATH. Docker: https://docs.docker.com/get-docker/ — Podman: https://podman.io/docs/installation"
-fi
+# --- Docker (required for Kind in this tutorial) ---
+check_program "Docker" docker \
+  "See https://docs.docker.com/get-docker/ — on macOS, Homebrew: brew install --cask docker (Docker Desktop) or brew install docker"
 
 # --- curl ---
 check_program "curl" curl "See https://curl.se/docs/install.html"
@@ -116,16 +123,47 @@ check_program "Istio" istioctl "See https://istio.io/latest/docs/setup/getting-s
 # --- watch ---
 check_program "Watch" watch "See https://linux.die.net/man/1/watch"
 
+# --- hey (HTTP load generator) ---
+check_program "Hey" hey "See https://github.com/rakyll/hey"
+
+# --- k9s (terminal UI for Kubernetes) ---
+# k9s version (no --short) prints a banner first; --short skips art but still lists Version on line 1.
+check_program "k9s" k9s "See https://k9scli.io/ — Homebrew: brew install derailed/k9s/k9s" \
+  "k9s version --short 2>/dev/null | awk '/^Version/{print \$NF; exit}' | tr -d '\r'"
+
 # --- Summary ---
 printf '\n'
 section_line
 if (( issues == 0 )); then
-  printf '%s\n' "No issues found!"
+  printf '%s%s%s\n' "$clr_ok" "No issues found!" "$clr_rst"
 else
   if (( issues == 1 )); then
-    printf '%s\n' "Doctor found issues in 1 category."
+    printf '%s\n' "Setup found issues in 1 category."
   else
-    printf '%s\n' "Doctor found issues in ${issues} categories."
+    printf '%s\n' "Setup found issues in ${issues} categories."
   fi
 fi
+
+if ((${#missing_brew[@]} > 0)); then
+  # Order matches typical one-liner: kind … kubectl … istioctl … watch … curl … hey … k9s … docker
+  brew_order=(kind kubectl istioctl watch curl hey derailed/k9s/k9s docker)
+  to_install=()
+  for p in "${brew_order[@]}"; do
+    for m in "${missing_brew[@]}"; do
+      if [[ "$m" == "$p" ]]; then
+        to_install+=("$p")
+        break
+      fi
+    done
+  done
+  if ((${#to_install[@]} > 0)); then
+    printf '\n'
+    printf '%s%s%s\n' "$brew_hint_clr" "Install everything reported above with Homebrew (macOS). Copy and run:" "$clr_rst"
+    printf '%s  brew install %s%s\n' "$brew_cmd_clr" "${to_install[*]}" "$clr_rst"
+    if [[ " ${to_install[*]} " == *" docker "* ]]; then
+      printf '%s%s%s\n' "$brew_cmt_clr" "  # Prefer Docker Desktop? Use: brew install --cask docker (then rerun this check)." "$clr_rst"
+    fi
+  fi
+fi
+
 printf '\n'

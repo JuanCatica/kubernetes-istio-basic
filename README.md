@@ -22,23 +22,9 @@ chmod +x ./scripts/setup
 ./scripts/setup
 ```
 
-If the setup check passes, continue with step 1. Otherwise, install any missing tools. On macOS with Homebrew, for example:
+If everything looks good, you should see **No issues found!** If not, **`./scripts/setup`** prints a suggested **`brew install …`** line (Homebrew on macOS) listing only what was missing—run it, then run the script again.
 
-```sh
-brew install kind kubectl istioctl watch curl hey derailed/k9s/k9s
-```
-
-You also need a container runtime—**Docker** or **Podman** (either is enough for Kind):
-
-```sh
-brew install docker
-```
-
-or
-
-```sh
-brew install podman
-```
+You still need a container runtime for Kind; **`./scripts/setup`** checks **Docker**. **Podman** can work with Kind in general, but it is not validated by that script.
 
 ## 1. Run the sample image locally
 
